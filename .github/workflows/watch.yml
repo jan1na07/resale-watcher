@@ -1,0 +1,30 @@
+name: KIZ Resale Watcher
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: playwright install --with-deps chromium
+      - run: python kiz_resale_watcher.py
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      - name: Save state
+        run: |
+          git config user.name "watcher-bot"
+          git config user.email "watcher-bot@example.com"
+          git add kiz_resale_state.json
+          git diff --staged --quiet || git commit -m "update state"
+          git push
